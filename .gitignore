@@ -55,3 +55,6 @@ CMakeLists.txt.user
 
 # Visual Studio Code Coverage Folder
 .coverage/
+
+# Visual Studio .vs folder
+.vs/
