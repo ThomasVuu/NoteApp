@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using NoteApp.Data;
 using NoteApp.Models;
+using NoteApp.Services;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,8 +25,7 @@ namespace NoteApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Note>>> GetNotes()
         {
-            var notes = await _context.Notes.ToListAsync();
-            return Ok(notes);
+            return await _context.Notes.ToListAsync();
         }
 
         // GET: api/Notes/5
@@ -45,9 +46,8 @@ namespace NoteApp.Controllers
         [HttpPost]
         public async Task<ActionResult<Note>> PostNote(Note note)
         {
-            if (!ModelState.IsValid || string.IsNullOrWhiteSpace(note.Content))
+            if (!ModelState.IsValid)
             {
-                ModelState.AddModelError("Content", "Content is required.");
                 return BadRequest(ModelState);
             }
 
@@ -63,10 +63,13 @@ namespace NoteApp.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutNote(int id, [FromBody] Note updatedNote)
         {
-
-            if (!ModelState.IsValid || string.IsNullOrWhiteSpace(updatedNote.Content))
+            if (id != updatedNote.NoteId)
             {
-                ModelState.AddModelError("Content", "Content is required.");
+                return BadRequest();
+            }
+
+            if (!ModelState.IsValid)
+            {
                 return BadRequest(ModelState);
             }
 
@@ -80,17 +83,9 @@ namespace NoteApp.Controllers
             existingNote.Content = updatedNote.Content;
             existingNote.LastModifiedDate = DateTime.Now;
 
-            // Log the entity state before saving
-            Console.WriteLine($"Before Save - Entity State: {_context.Entry(existingNote).State}");
-            Console.WriteLine($"Before Save - LastModifiedDate: {existingNote.LastModifiedDate}");
-
-
             try
             {
                 await _context.SaveChangesAsync();
-                // Log the entity state after saving
-                Console.WriteLine($"After Save - Entity State: {_context.Entry(existingNote).State}");
-                Console.WriteLine($"After Save - LastModifiedDate: {existingNote.LastModifiedDate}");
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -121,6 +116,24 @@ namespace NoteApp.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // GET: api/Notes/generate-blog
+        [HttpGet("generate-blog")]
+        public async Task<IActionResult> GenerateBlogPost(DateTime startDate, DateTime endDate, [FromServices] BlogPostService blogPostService)
+        {
+            var notes = await _context.Notes
+                                      .Where(n => n.CreatedDate >= startDate && n.CreatedDate <= endDate)
+                                      .ToListAsync();
+
+            if (notes == null || !notes.Any())
+            {
+                return NotFound("No notes found for the specified date range.");
+            }
+
+            var blogPost = await blogPostService.GenerateAndSaveBlogPostAsync(notes);
+
+            return CreatedAtAction(nameof(BlogPostsController.GetBlogPost), "BlogPosts", new { id = blogPost.BlogPostId }, blogPost);
         }
 
         private bool NoteExists(int id)

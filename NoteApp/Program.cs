@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NoteApp.Data;
+using NoteApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,12 @@ builder.Services.AddSwaggerGen(); // Add Swagger
 
 builder.Services.AddDbContext<NotesContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddHttpClient<BlogPostService>(client =>
+{
+    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {builder.Configuration["OpenAI:ApiKey"]}");
+});
+
 
 var app = builder.Build();
 

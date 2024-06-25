@@ -10,5 +10,6 @@ namespace NoteApp.Data
         }
 
         public DbSet<Note> Notes { get; set; }
+        public DbSet<BlogPost> BlogPosts { get; set; }
     }
 }
