@@ -58,3 +58,6 @@ CMakeLists.txt.user
 
 # Visual Studio .vs folder
 .vs/
+
+appsettings.json
+
